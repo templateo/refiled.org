@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>refiled.org</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root {
+  --bg0: #090705;
+  --glass: rgba(255,255,255,0.035);
+  --glass-b: rgba(255,255,255,0.07);
+  --glass-h: rgba(255,255,255,0.055);
+  --amber: #f59e0b;
+  --amber-d: #d97706;
+  --amber-p: rgba(245,158,11,0.1);
+  --amber-g: rgba(245,158,11,0.05);
+  --amber-br: rgba(245,158,11,0.22);
+  --text: #f0e6d3;
+  --text-d: #9a8570;
+  --text-m: #453828;
+  --ok: #86efac;
+  --ok-bg: rgba(134,239,172,0.07);
+  --err: #fca5a5;
+  --mono: 'DM Mono', monospace;
+  --serif: 'Instrument Serif', serif;
+  --r: 13px;
+  --rs: 8px;
+  --t: 0.18s cubic-bezier(0.4,0,0.2,1);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  background: var(--bg0);
+  color: var(--text);
+  font-family: var(--mono);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+/* ambient */
+.orb { position: fixed; border-radius: 50%; pointer-events: none; z-index: 0; filter: blur(90px); }
+.o1 { width: 520px; height: 520px; background: radial-gradient(circle, rgba(245,158,11,0.22) 0%, transparent 68%); top: -160px; right: -120px; animation: d1 20s ease-in-out infinite alternate; }
+.o2 { width: 380px; height: 380px; background: radial-gradient(circle, rgba(180,90,10,0.14) 0%, transparent 68%); bottom: -100px; left: -60px; animation: d2 25s ease-in-out infinite alternate; }
+@keyframes d1 { to { transform: translate(-30px, 35px); } }
+@keyframes d2 { to { transform: translate(25px, -25px); } }
+
+/* grain */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 1; opacity: 0.5;
+}
+
+/* CARD */
+.card {
+  position: relative; z-index: 10;
+  width: 100%; max-width: 500px;
+  margin: 0 18px;
+  background: rgba(13,10,6,0.78);
+  backdrop-filter: blur(28px) saturate(1.5);
+  -webkit-backdrop-filter: blur(28px) saturate(1.5);
+  border: 1px solid var(--glass-b);
+  border-radius: 18px;
+  box-shadow: 0 0 0 1px rgba(245,158,11,0.03), 0 28px 72px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+/* HEAD */
+.head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 22px 16px;
+  border-bottom: 1px solid var(--glass-b);
+}
+.logo { display: flex; align-items: baseline; gap: 1px; }
+.lw { font-family: var(--serif); font-size: 20px; color: var(--text); letter-spacing: -0.3px; }
+.ld { font-family: var(--serif); font-size: 20px; color: var(--amber); }
+.le { font-family: var(--mono); font-size: 10px; color: var(--text-m); letter-spacing: 1px; margin-left: 2px; padding-bottom: 1px; align-self: flex-end; }
+.badge { display: flex; align-items: center; gap: 5px; font-size: 9px; color: var(--text-m); letter-spacing: 1px; text-transform: uppercase; }
+.badge i { font-size: 8px; color: var(--ok); }
+
+/* DROP */
+.drop {
+  margin: 16px;
+  border: 1.5px dashed var(--glass-b);
+  border-radius: var(--r);
+  padding: 30px 20px 26px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--t);
+  position: relative; overflow: hidden;
+  background: var(--glass);
+}
+.drop::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, var(--amber-g), transparent 70%);
+  opacity: 0; transition: opacity var(--t);
+}
+.drop:hover, .drop.over { border-color: var(--amber-br); background: var(--amber-p); }
+.drop:hover::before, .drop.over::before { opacity: 1; }
+
+.drop-ico {
+  width: 44px; height: 44px;
+  margin: 0 auto 12px;
+  background: var(--glass); border: 1px solid var(--glass-b); border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; color: var(--amber); position: relative; z-index: 1;
+  transition: transform var(--t), box-shadow var(--t);
+}
+.drop:hover .drop-ico { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(245,158,11,0.18); }
+.drop h2 { font-family: var(--serif); font-size: 17px; font-weight: 400; margin-bottom: 5px; position: relative; z-index: 1; }
+.drop p { font-size: 10px; color: var(--text-m); line-height: 1.8; position: relative; z-index: 1; }
+.drop p strong { color: var(--text-d); font-weight: 400; }
+
+.fmts { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; margin-top: 12px; position: relative; z-index: 1; }
+.fmt { font-size: 9px; letter-spacing: 1.2px; padding: 2px 7px; border-radius: 4px; background: var(--amber-g); border: 1px solid var(--amber-br); color: var(--amber-d); }
+#fi { display: none; }
+
+/* FILE LIST */
+.flist { margin: 0 10px 10px; display: flex; flex-direction: column; gap: 3px; max-height: 340px; overflow-y: auto; }
+.flist::-webkit-scrollbar { width: 3px; }
+.flist::-webkit-scrollbar-thumb { background: var(--text-m); border-radius: 3px; }
+
+/* FILE ITEM */
+.fi {
+  border-radius: var(--rs);
+  border: 1px solid var(--glass-b);
+  background: var(--glass);
+  overflow: hidden;
+  transition: border-color var(--t);
+}
+.fi.open { border-color: var(--amber-br); }
+
+.fi-h {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 13px; cursor: pointer;
+  transition: background var(--t); user-select: none;
+}
+.fi-h:hover { background: var(--glass-h); }
+
+.fi-ico {
+  width: 28px; height: 28px; flex-shrink: 0;
+  background: var(--amber-p); border: 1px solid var(--amber-br);
+  border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: var(--amber);
+}
+
+.fi-info { flex: 1; min-width: 0; }
+.fi-name { font-size: 11px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; margin-bottom: 1px; }
+.fi-meta { font-size: 9px; color: var(--text-m); letter-spacing: 0.3px; }
+
+.fi-r { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+.fi-s { font-size: 9px; padding: 2px 7px; border-radius: 100px; letter-spacing: 0.3px; }
+.fi-s.ready { background: var(--amber-p); color: var(--amber); border: 1px solid var(--amber-br); }
+.fi-s.done { background: var(--ok-bg); color: var(--ok); border: 1px solid rgba(134,239,172,0.18); }
+.fi-s.err { background: rgba(252,165,165,0.07); color: var(--err); border: 1px solid rgba(252,165,165,0.18); }
+.fi-chev { font-size: 9px; color: var(--text-m); transition: transform var(--t); }
+.fi.open .fi-chev { transform: rotate(180deg); }
+
+/* DROPDOWN */
+.fi-drop { display: none; border-top: 1px solid var(--glass-b); background: rgba(0,0,0,0.22); padding: 12px; }
+.fi.open .fi-drop { display: block; }
+
+/* TREE */
+.tw { max-height: 180px; overflow-y: auto; margin-bottom: 10px; border-radius: 6px; border: 1px solid var(--glass-b); background: rgba(0,0,0,0.28); padding: 4px; }
+.tw::-webkit-scrollbar { width: 3px; }
+.tw::-webkit-scrollbar-thumb { background: var(--text-m); border-radius: 3px; }
+.te { display: flex; align-items: center; gap: 7px; padding: 4px 7px; border-radius: 5px; font-size: 10px; color: var(--text-d); transition: background var(--t); cursor: default; }
+.te:hover { background: var(--glass-h); }
+.te i { font-size: 9px; color: var(--text-m); flex-shrink: 0; }
+.te.dir i { color: var(--amber-d); }
+.te .tn { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.te .ts { color: var(--text-m); font-size: 9px; flex-shrink: 0; }
+.te .tdl { opacity: 0; transition: opacity var(--t); background: var(--amber-p); border: 1px solid var(--amber-br); color: var(--amber); border-radius: 4px; padding: 1px 6px; font-size: 9px; cursor: pointer; font-family: var(--mono); flex-shrink: 0; }
+.te:hover .tdl { opacity: 1; }
+
+/* OPTS */
+.opts { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 9px; }
+.op { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--text-m); padding: 3px 9px; border-radius: 100px; border: 1px solid var(--glass-b); background: var(--glass); cursor: pointer; transition: all var(--t); user-select: none; letter-spacing: 0.3px; }
+.op i { font-size: 8px; }
+.op:hover { border-color: var(--amber-br); color: var(--text-d); }
+.op.on { border-color: var(--amber-br); background: var(--amber-p); color: var(--amber); }
+
+/* CONV ROW */
+.crow { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; }
+.cl { font-size: 9px; color: var(--text-m); letter-spacing: 0.8px; white-space: nowrap; }
+.cs {
+  flex: 1; background: rgba(0,0,0,0.38); border: 1px solid var(--glass-b);
+  border-radius: 6px; color: var(--text); font-family: var(--mono); font-size: 10px;
+  padding: 6px 9px; outline: none; cursor: pointer; transition: border-color var(--t);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9' viewBox='0 0 24 24' fill='none' stroke='%23453828' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 7px center; padding-right: 22px;
+}
+.cs:focus { border-color: var(--amber-br); }
+.cs option { background: #140f08; }
+.ca { color: var(--text-m); font-size: 9px; flex-shrink: 0; }
+
+/* ACTIONS */
+.ar { display: flex; gap: 5px; }
+.btn { display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 10px; padding: 7px 12px; border-radius: 6px; border: none; cursor: pointer; transition: all var(--t); letter-spacing: 0.3px; white-space: nowrap; }
+.btn i { font-size: 9px; }
+.ba { background: var(--amber); color: #0a0704; font-weight: 500; flex: 1; justify-content: center; }
+.ba:hover { background: #fbbf24; box-shadow: 0 3px 14px rgba(245,158,11,0.28); }
+.bg { background: var(--glass); border: 1px solid var(--glass-b); color: var(--text-d); }
+.bg:hover { border-color: var(--amber-br); color: var(--text); }
+.bd { background: var(--glass); border: 1px solid var(--glass-b); color: var(--text-m); }
+.bd:hover { border-color: rgba(252,165,165,0.28); color: var(--err); }
+
+/* GLOBAL BAR */
+.gbar { margin: 0 10px 10px; display: none; gap: 5px; }
+.gbar.on { display: flex; }
+
+/* PROGRESS */
+.prog { height: 2px; background: var(--glass-b); border-radius: 2px; overflow: hidden; margin: 0 18px 14px; display: none; }
+.prog.on { display: block; }
+.progf { height: 100%; background: linear-gradient(90deg, var(--amber-d), var(--amber)); border-radius: 2px; transition: width 0.3s ease; width: 0%; box-shadow: 0 0 6px rgba(245,158,11,0.4); }
+
+/* FOOT */
+.foot { padding: 11px 18px; border-top: 1px solid var(--glass-b); display: flex; align-items: center; justify-content: space-between; }
+.fstats { display: flex; gap: 14px; }
+.fst { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--text-m); letter-spacing: 0.3px; }
+.fst i { font-size: 8px; }
+.fst span { color: var(--text-d); }
+.flink { font-size: 9px; color: var(--text-m); letter-spacing: 0.8px; text-decoration: none; }
+
+/* TOAST */
+.tstack { position: fixed; bottom: 20px; right: 20px; z-index: 100; display: flex; flex-direction: column; gap: 5px; }
+.toast { display: flex; align-items: center; gap: 7px; background: rgba(13,10,6,0.94); backdrop-filter: blur(16px); border: 1px solid var(--glass-b); border-radius: 8px; padding: 9px 14px; font-size: 10px; color: var(--text); box-shadow: 0 6px 28px rgba(0,0,0,0.55); animation: tin 0.22s ease; max-width: 260px; }
+.toast i { font-size: 10px; }
+.toast.ok { border-color: rgba(134,239,172,0.22); }
+.toast.ok i { color: var(--ok); }
+.toast.er { border-color: rgba(252,165,165,0.22); }
+.toast.er i { color: var(--err); }
+@keyframes tin { from { opacity:0; transform: translateX(10px) scale(0.97); } to { opacity:1; transform: none; } }
+
+/* range */
+input[type=range] { accent-color: var(--amber); }
+</style>
+</head>
+<body>
+
+<div class="orb o1"></div>
+<div class="orb o2"></div>
+
+<div class="card">
+
+  <div class="head">
+    <div class="logo">
+      <span class="lw">refiled</span>
+      <span class="ld">.</span>
+      <span class="le">org</span>
+    </div>
+    <div class="badge">
+      <i class="fa-solid fa-circle-dot"></i> client-side only
+    </div>
+  </div>
+
+  <div class="drop" id="dz" onclick="document.getElementById('fi').click()">
+    <div class="drop-ico"><i class="fa-solid fa-arrow-up-from-bracket"></i></div>
+    <h2>Drop files to refile</h2>
+    <p>Extract archives, convert data & images<br><strong>nothing ever leaves your device</strong></p>
+    <div class="fmts">
+      <span class="fmt">ZIP</span><span class="fmt">GZIP</span><span class="fmt">JSON</span>
+      <span class="fmt">CSV</span><span class="fmt">XML</span><span class="fmt">PNG</span>
+      <span class="fmt">JPG</span><span class="fmt">WEBP</span><span class="fmt">TXT</span><span class="fmt">MD</span>
+    </div>
+  </div>
+  <input type="file" id="fi" multiple accept=".zip,.gz,.json,.csv,.txt,.png,.jpg,.jpeg,.webp,.gif,.svg,.md,.xml,.yaml,.yml">
+
+  <div class="flist" id="flist"></div>
+
+  <div class="gbar" id="gbar">
+    <button class="btn bg" onclick="dlBundle()"><i class="fa-solid fa-box-archive"></i> Bundle ZIP</button>
+    <button class="btn bd" onclick="clearAll()"><i class="fa-solid fa-trash-can"></i> Clear all</button>
+  </div>
+
+  <div class="prog" id="prog"><div class="progf" id="progf"></div></div>
+
+  <div class="foot">
+    <div class="fstats">
+      <div class="fst"><i class="fa-solid fa-file"></i><span id="sf">0</span> files</div>
+      <div class="fst"><i class="fa-solid fa-weight-hanging"></i><span id="ss">0 B</span></div>
+      <div class="fst"><i class="fa-solid fa-arrows-rotate"></i><span id="sc">0</span> converted</div>
+    </div>
+    <a class="flink" href="#">refiled.org</a>
+  </div>
+</div>
+
+<div class="tstack" id="ts"></div>
+
+<script>
+const S = { files: [], stats: { n: 0, b: 0, c: 0 } };
+let uid = 0;
+
+const $ = id => document.getElementById(id);
+const ext = n => n.split('.').pop().toLowerCase();
+const fmtB = b => { if (!b) return '0 B'; const k=1024,s=['B','KB','MB','GB'],i=Math.floor(Math.log(b)/Math.log(k)); return +(b/Math.pow(k,i)).toFixed(1)+' '+s[i]; };
+const isHid = n => { const b=n.split('/').pop(); return b.startsWith('.')||b.startsWith('__MACOSX'); };
+
+function fileIco(name, dir) {
+  if (dir) return 'fa-folder';
+  const e = ext(name);
+  return ({zip:'fa-file-zipper',gz:'fa-file-zipper',json:'fa-file-code',xml:'fa-file-code',yaml:'fa-file-code',yml:'fa-file-code',csv:'fa-file-csv',png:'fa-file-image',jpg:'fa-file-image',jpeg:'fa-file-image',gif:'fa-file-image',webp:'fa-file-image',svg:'fa-file-image',pdf:'fa-file-pdf',txt:'fa-file-lines',md:'fa-file-lines',js:'fa-file-code',ts:'fa-file-code',py:'fa-file-code',html:'fa-file-code',css:'fa-file-code',sh:'fa-terminal'})[e] || 'fa-file';
+}
+
+function typeOf(f) {
+  const e = ext(f.name);
+  if (['zip','gz'].includes(e)) return 'archive';
+  if (['json','csv','xml','yaml','yml'].includes(e)) return 'data';
+  if (['png','jpg','jpeg','webp','gif','svg'].includes(e)) return 'image';
+  if (['txt','md'].includes(e)) return 'text';
+  return 'generic';
+}
+
+function toast(msg, type='ok') {
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<i class="fa-solid ${type==='ok'?'fa-circle-check':'fa-circle-xmark'}"></i><span>${msg}</span>`;
+  $('ts').appendChild(t);
+  setTimeout(() => { t.style.transition='opacity 0.25s'; t.style.opacity='0'; setTimeout(()=>t.remove(),250); }, 3000);
+}
+
+function prog(pct) {
+  const p=$('prog'),f=$('progf');
+  p.classList.add('on'); f.style.width=pct+'%';
+  if (pct>=100) setTimeout(()=>{p.classList.remove('on');f.style.width='0%';},600);
+}
+
+function dl(name, blob) {
+  const u=URL.createObjectURL(blob),a=Object.assign(document.createElement('a'),{href:u,download:name});
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(u),2000);
+}
+
+function updStats() {
+  $('sf').textContent=S.stats.n;
+  $('ss').textContent=fmtB(S.stats.b);
+  $('sc').textContent=S.stats.c;
+  $('gbar').classList.toggle('on', S.files.length>0);
+}
+
+// ── DRAG ──
+const dz=$('dz');
+['dragenter','dragover'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.add('over');}));
+['dragleave','drop'].forEach(e=>dz.addEventListener(e,()=>dz.classList.remove('over')));
+dz.addEventListener('drop',e=>{e.preventDefault();handle([...e.dataTransfer.files]);});
+$('fi').addEventListener('change',function(){handle([...this.files]);this.value='';});
+
+async function handle(files) {
+  for (const f of files) {
+    const id=++uid, type=typeOf(f);
+    const entry={id,file:f,type,ae:[],status:'ready'};
+    S.files.push(entry);
+    S.stats.n++; S.stats.b+=f.size;
+    renderItem(entry);
+    if(type==='archive') await extract(entry);
+  }
+  updStats();
+}
+
+// ── EXTRACT ──
+async function extract(entry) {
+  try {
+    const zip=await JSZip.loadAsync(entry.file);
+    const items=[];
+    zip.forEach((path,ze)=>{ if(!isHid(path)) items.push({path,ze}); });
+    for(let i=0;i<items.length;i++) {
+      prog(Math.round(i/items.length*90));
+      const{path,ze}=items[i];
+      if(!ze.dir) { const blob=await ze.async('blob'); entry.ae.push({path,blob,size:blob.size,name:path.split('/').pop()}); }
+      else entry.ae.push({path,blob:null,size:0,name:path.split('/').pop()||path,isDir:true});
+    }
+    prog(100); entry.status='ready'; refresh(entry);
+  } catch(e) { entry.status='err'; refresh(entry); toast('Extract failed: '+entry.file.name,'er'); }
+}
+
+// ── RENDER ──
+function renderItem(entry) {
+  const el=document.createElement('div');
+  el.className='fi'; el.id='fi'+entry.id;
+  el.innerHTML=html(entry);
+  $('flist').appendChild(el);
+  el.querySelector('.fi-h').addEventListener('click',()=>toggle(entry.id));
+}
+
+function refresh(entry) {
+  const el=$('fi'+entry.id); if(!el) return;
+  const wasOpen=el.classList.contains('open');
+  el.innerHTML=html(entry);
+  if(wasOpen) el.classList.add('open');
+  el.querySelector('.fi-h').addEventListener('click',()=>toggle(entry.id));
+}
+
+function html(entry) {
+  const{id,file,type,ae,status}=entry;
+  const files=ae.filter(e=>!e.isDir), dirs=ae.filter(e=>e.isDir);
+  const sLabel=status==='err'?'err':status;
+  return `
+    <div class="fi-h">
+      <div class="fi-ico"><i class="fa-solid ${fileIco(file.name)}"></i></div>
+      <div class="fi-info">
+        <div class="fi-name">${file.name}</div>
+        <div class="fi-meta">${fmtB(file.size)} · ${type}${type==='archive'&&files.length?' · '+files.length+' files':''}</div>
+      </div>
+      <div class="fi-r">
+        <span class="fi-s ${sLabel}">${sLabel}</span>
+        <i class="fa-solid fa-chevron-down fi-chev"></i>
+      </div>
+    </div>
+    <div class="fi-drop">${buildDrop(entry)}</div>
+  `;
+}
+
+function buildDrop(entry) {
+  const{id,file,type,ae}=entry;
+
+  if(type==='archive') {
+    const treeHTML = ae.slice(0,100).map(e=>{
+      const depth=(e.path.match(/\//g)||[]).length, pad=8+depth*10;
+      if(e.isDir) return `<div class="te dir" style="padding-left:${pad}px"><i class="fa-solid fa-folder"></i><span class="tn">${e.name||e.path}/</span></div>`;
+      return `<div class="te" style="padding-left:${pad}px"><i class="fa-solid ${fileIco(e.name)}"></i><span class="tn">${e.name}</span><span class="ts">${fmtB(e.size)}</span><button class="tdl" onclick="dlE(${id},'${e.path.replace(/'/g,"\\'")}')"><i class="fa-solid fa-arrow-down"></i></button></div>`;
+    }).join('') || `<div style="padding:10px;font-size:10px;color:var(--text-m);text-align:center">No files found</div>`;
+
+    return `
+      <div class="tw">${treeHTML}</div>
+      <div class="opts">
+        <div class="op" id="op_fl_${id}" onclick="this.classList.toggle('on')"><i class="fa-solid fa-layer-group"></i> Flatten</div>
+        <div class="op on" id="op_sk_${id}" onclick="this.classList.toggle('on')"><i class="fa-solid fa-eye-slash"></i> Skip hidden</div>
+      </div>
+      <div class="ar">
+        <button class="btn ba" onclick="dlZip(${id})"><i class="fa-solid fa-box-archive"></i> Download ZIP</button>
+        <button class="btn bg" onclick="dlFlat(${id})"><i class="fa-solid fa-arrow-down"></i> All</button>
+        <button class="btn bd" onclick="rm(${id})"><i class="fa-solid fa-xmark"></i></button>
+      </div>`;
+  }
+
+  if(type==='data') {
+    const e=ext(file.name), opts=['json','csv','xml','yaml'].filter(x=>x!==e);
+    return `
+      <div class="crow">
+        <span class="cl">FROM</span>
+        <select class="cs"><option>${e.toUpperCase()}</option></select>
+        <span class="ca"><i class="fa-solid fa-arrow-right"></i></span>
+        <span class="cl">TO</span>
+        <select class="cs" id="dto${id}">${opts.map(o=>`<option value="${o}">${o.toUpperCase()}</option>`).join('')}</select>
+      </div>
+      <div class="ar">
+        <button class="btn ba" onclick="cvData(${id})"><i class="fa-solid fa-arrows-rotate"></i> Convert</button>
+        <button class="btn bd" onclick="rm(${id})"><i class="fa-solid fa-xmark"></i></button>
+      </div>`;
+  }
+
+  if(type==='image') {
+    return `
+      <div class="crow">
+        <span class="cl">TO</span>
+        <select class="cs" id="ifmt${id}"><option value="image/png">PNG</option><option value="image/jpeg">JPEG</option><option value="image/webp">WEBP</option></select>
+        <span class="cl">Q</span>
+        <input type="range" id="iq${id}" min="10" max="100" value="92" style="flex:1" oninput="$('iqv${id}').textContent=this.value+'%'">
+        <span style="font-size:9px;color:var(--text-m);width:26px;text-align:right" id="iqv${id}">92%</span>
+      </div>
+      <div class="ar">
+        <button class="btn ba" onclick="cvImg(${id})"><i class="fa-solid fa-image"></i> Convert</button>
+        <button class="btn bd" onclick="rm(${id})"><i class="fa-solid fa-xmark"></i></button>
+      </div>`;
+  }
+
+  if(type==='text') {
+    return `
+      <div class="crow">
+        <span class="cl">OP</span>
+        <select class="cs" id="top${id}">
+          <option value="b64e">→ Base64</option>
+          <option value="b64d">← Base64</option>
+          <option value="up">UPPERCASE</option>
+          <option value="lo">lowercase</option>
+          <option value="md">MD → HTML</option>
+          <option value="wc">Word count</option>
+          <option value="lc">Line count</option>
+        </select>
+      </div>
+      <div class="ar">
+        <button class="btn ba" onclick="cvTxt(${id})"><i class="fa-solid fa-wand-magic-sparkles"></i> Process</button>
+        <button class="btn bd" onclick="rm(${id})"><i class="fa-solid fa-xmark"></i></button>
+      </div>`;
+  }
+
+  return `<div class="ar"><button class="btn ba" onclick="dlG(${id})"><i class="fa-solid fa-arrow-down"></i> Download</button><button class="btn bd" onclick="rm(${id})"><i class="fa-solid fa-xmark"></i></button></div>`;
+}
+
+function toggle(id) {
+  const el=$('fi'+id); if(el) el.classList.toggle('open');
+}
+
+// ── ARCHIVE ──
+function getE(id) { return S.files.find(f=>f.id===id); }
+
+function dlE(id, path) {
+  const e=getE(id); if(!e) return;
+  const a=e.ae.find(x=>x.path===path); if(!a||!a.blob) return;
+  dl(a.name, a.blob); toast('Downloaded: '+a.name);
+}
+
+async function dlZip(id) {
+  const e=getE(id); if(!e) return;
+  const fl=e.ae.filter(x=>!x.isDir&&x.blob);
+  if(!fl.length) return;
+  const flatten=!!$('op_fl_'+id)?.classList.contains('on');
+  const zip=new JSZip();
+  fl.forEach(x=>zip.file(flatten?x.name:x.path, x.blob));
+  const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
+  dl('refiled_'+e.file.name, blob); toast('Downloaded ZIP');
+}
+
+async function dlFlat(id) {
+  const e=getE(id); if(!e) return;
+  const fl=e.ae.filter(x=>!x.isDir&&x.blob);
+  for(let i=0;i<fl.length;i++) { await new Promise(r=>setTimeout(r,55*i)); dl(fl[i].name,fl[i].blob); }
+  toast(`Downloaded ${fl.length} files`);
+}
+
+// ── DATA ──
+async function cvData(id) {
+  const e=getE(id); if(!e) return;
+  const to=$('dto'+id)?.value; if(!to) return;
+  try {
+    const txt=await e.file.text(), from=ext(e.file.name);
+    let data;
+    if(from==='json') data=JSON.parse(txt);
+    else if(from==='csv') data=csvP(txt);
+    else if(from==='xml') data=xmlP(txt);
+    else data=yamlP(txt);
+
+    let out;
+    if(to==='json') out=JSON.stringify(data,null,2);
+    else if(to==='csv') out=csvS(Array.isArray(data)?data:[data]);
+    else if(to==='xml') out=xmlS(data);
+    else out=yamlS(data);
+
+    dl(e.file.name.replace(/\.\w+$/,'.'+to), new Blob([out],{type:'text/plain'}));
+    S.stats.c++; updStats(); e.status='ready'; refresh(e);
+    toast('Converted → '+to.toUpperCase());
+  } catch(err) { e.status='err'; refresh(e); toast('Failed: '+err.message,'er'); }
+}
+
+// ── IMAGE ──
+async function cvImg(id) {
+  const e=getE(id); if(!e) return;
+  const fmt=$('ifmt'+id)?.value||'image/png', q=parseInt($('iq'+id)?.value||92)/100;
+  try {
+    const bmp=await createImageBitmap(e.file);
+    const c=document.createElement('canvas'); c.width=bmp.width; c.height=bmp.height;
+    c.getContext('2d').drawImage(bmp,0,0);
+    const blob=await new Promise(r=>c.toBlob(r,fmt,q));
+    const ox=fmt.split('/')[1];
+    dl(e.file.name.replace(/\.\w+$/,'.'+ox), blob);
+    S.stats.c++; updStats(); e.status='ready'; refresh(e);
+    toast('Converted → '+ox.toUpperCase());
+  } catch(err) { toast('Image failed','er'); }
+}
+
+// ── TEXT ──
+async function cvTxt(id) {
+  const e=getE(id); if(!e) return;
+  const op=$('top'+id)?.value, txt=await e.file.text();
+  let out='', oname=e.file.name;
+  try {
+    if(op==='b64e') { out=btoa(unescape(encodeURIComponent(txt))); oname+='.b64.txt'; }
+    else if(op==='b64d') { out=decodeURIComponent(escape(atob(txt.trim()))); oname=oname.replace(/\.b64\.txt$/,'')||oname+'_dec.txt'; }
+    else if(op==='up') out=txt.toUpperCase();
+    else if(op==='lo') out=txt.toLowerCase();
+    else if(op==='md') { out=md2html(txt); oname=oname.replace(/\.md$/,'.html'); }
+    else if(op==='wc') { toast(txt.trim().split(/\s+/).length+' words'); return; }
+    else if(op==='lc') { toast(txt.split('\n').length+' lines'); return; }
+    dl(oname, new Blob([out],{type:'text/plain'}));
+    S.stats.c++; updStats(); e.status='ready'; refresh(e); toast('Processed');
+  } catch(err) { toast('Failed: '+err.message,'er'); }
+}
+
+function dlG(id) { const e=getE(id); if(e){dl(e.file.name,e.file);toast('Downloaded: '+e.file.name);} }
+
+// ── REMOVE / CLEAR ──
+function rm(id) {
+  const e=getE(id); if(!e) return;
+  S.stats.n=Math.max(0,S.stats.n-1); S.stats.b=Math.max(0,S.stats.b-e.file.size);
+  S.files=S.files.filter(f=>f.id!==id); $('fi'+id)?.remove(); updStats();
+}
+
+function clearAll() {
+  S.files=[]; S.stats={n:0,b:0,c:0};
+  $('flist').innerHTML=''; updStats(); toast('Cleared');
+}
+
+// ── BUNDLE ──
+async function dlBundle() {
+  if(!S.files.length) return;
+  const zip=new JSZip();
+  for(const e of S.files) {
+    if(e.type==='archive') { const f=zip.folder(e.file.name); e.ae.filter(x=>!x.isDir&&x.blob).forEach(x=>f.file(x.path,x.blob)); }
+    else zip.file(e.file.name,e.file);
+  }
+  const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
+  dl('refiled_bundle.zip',blob); toast('Bundle downloaded');
+}
+
+// ── PARSERS ──
+function csvP(t) {
+  const l=t.trim().split('\n'),h=l[0].split(',').map(x=>x.trim().replace(/^"|"$/g,''));
+  return l.slice(1).map(r=>{ const v=r.split(',').map(x=>x.trim().replace(/^"|"$/g,'')),o={}; h.forEach((k,i)=>o[k]=v[i]||''); return o; });
+}
+function csvS(a) {
+  if(!a.length) return '';
+  const h=Object.keys(a[0]);
+  return [h.join(','),...a.map(o=>h.map(k=>{ const v=String(o[k]??''); return v.includes(',')?`"${v}"`:v; }).join(','))].join('\n');
+}
+function xmlP(t) {
+  const d=new DOMParser().parseFromString(t,'text/xml');
+  function n2o(n) {
+    if(!n.children.length) return n.textContent;
+    const o={};
+    for(const c of n.children){const v=n2o(c);if(o[c.tagName]){if(!Array.isArray(o[c.tagName]))o[c.tagName]=[o[c.tagName]];o[c.tagName].push(v);}else o[c.tagName]=v;}
+    return o;
+  }
+  return n2o(d.documentElement);
+}
+function xmlS(d,t='root') {
+  function x(o,t){if(typeof o!=='object'||o===null)return`<${t}>${String(o)}</${t}>`;if(Array.isArray(o))return o.map(i=>x(i,'item')).join('\n');return`<${t}>\n${Object.entries(o).map(([k,v])=>x(v,k)).join('\n')}\n</${t}>`;}
+  return`<?xml version="1.0" encoding="UTF-8"?>\n`+x(d,t);
+}
+function yamlP(t) {
+  const r={};
+  for(const l of t.split('\n')){if(l.trim().startsWith('#')||!l.trim())continue;const m=l.match(/^(\w[\w\s]*):\s*(.*)/);if(m)r[m[1].trim()]=m[2].trim();}
+  return r;
+}
+function yamlS(o,i=0) {
+  if(typeof o!=='object'||o===null)return String(o);
+  const s='  '.repeat(i);
+  if(Array.isArray(o))return o.map(v=>`${s}- ${yamlS(v,i+1)}`).join('\n');
+  return Object.entries(o).map(([k,v])=>typeof v==='object'&&v!==null?`${s}${k}:\n${yamlS(v,i+1)}`:`${s}${k}: ${v}`).join('\n');
+}
+function md2html(m) {
+  let h=m.replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/`(.+?)`/g,'<code>$1</code>').replace(/^\- (.+)$/gm,'<li>$1</li>').replace(/\[(.+?)\]\((.+?)\)/g,'<a href="$2">$1</a>').replace(/\n\n/g,'</p><p>');
+  return`<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body><p>${h}</p></body></html>`;
+}
+</script>
+</body>
+</html>
